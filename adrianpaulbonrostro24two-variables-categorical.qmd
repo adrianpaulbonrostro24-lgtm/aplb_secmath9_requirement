@@ -1,6 +1,6 @@
 ---
 title: "Two Variables: Qualitative"
-author: Orville D. Hombrebueno
+author: Adrian Paul L. Bonrostro
 date: today
 format:
   html:
@@ -41,7 +41,7 @@ df <- df |>
   mutate(
     gwa_class_description = factor(
       gwa_class_description,
-      levels = c("failed","conditional","passing","satisfactory","good","very good", "excellent"),
+      levels = c("good","very good", "excellent"),
       ordered = TRUE
     )
   ) |>
@@ -72,20 +72,91 @@ The first 6 rows of the titanic data set are shown in @tbl-gwa_tech.
 
 df|>
   head() |> # getting the first six rows of the data
-  kable(col.names = c("study_technique","gwa_class_description")) # creating a table
+  kable(col.names = c("study_tecnique", "gwa_class_description")) # creating a table
 ```
 ## Descriptive Statistics
 
 The dataset encompasses student observations across multiple academic colleges and year levels, with upper-year students making up a notable portion of the cohort. Regarding academic standing, the vast majority of students achieved a "very good" General Weighted Average classification, while smaller proportions attained "good" or "excellent" standings. Students reported varying amounts of daily time dedicated to studying. Preferred learning methods across the cohort spanned several popular techniques, led by Active Recall and the Pomodoro Technique, alongside Summarization, Group Study, the Feynman Technique, and the Blurting Method. Furthermore, an examination across performance tiers indicates that students in higher GWA categories generally maintained higher average daily study durations compared to those in lower performance tiers.
+
 
 ```{r}
 #| label: tbl-summary
 #| tbl-cap: "Summary statistics of `gwa_class_description` when grouped according to `study_technique`."
 #| message: false
 
-df |> 
-  tbl_summary(
-    by = study_technique,
-    include = gwa_class_description
+df|>
+  tbl_cross(
+  row = gwa_class_description,
+  col = study_technique,
+  percent = "column", 
+  margin = c("row" , "column"),
+  label = list(
+  gwa_class_description ~ "Class Description",
+  study_technique ~ "Study Technique"
+  )
   )
 ```
+
+# Hypothesis Testing
+
+## Research Question
+Is there a significant association between students' primary study techniques and their General Weighted Average (GWA) classification?Does a passenger's sex affect their survival status?
+
+## Hypothesis and Test Statistics
+
+- $H_0:p_{Survived}-p_{Sex}=0$; There is no significant association between students' primary study techniques and their GWA classification.
+
+- $H_a:p_{Survived}-p_{Sex}\ne0$; There is no significant association between students' primary study techniques and their GWA classification.
+
+- Significance level, $\alpha=5\%\,\text{or p-value}\,\le\.05$
+
+- **Pearson's** $\chi^2$-test of independence
+
+- Independence.
+
+- Expected counts: all expected counts are $\ge5$ (see @tbl-expected).
+
+```{r}
+#| label: tbl-expected
+#| tbl-cap: Expected counts.
+#| warning: false
+
+# Create contingency table
+observed <- table(df$gwa_class_description,df$study_technique)
+
+# Perform chi-squared test
+chi_test <- chisq.test(observed)
+
+# Extract the expected counts
+expected <- chi_test$expected
+
+# View expected counts
+expected |>
+  as_tibble() |>
+  mutate(
+    " " = c("good", "very good","excellent")
+  ) |>
+  relocate(" ", .before = 1) |>
+  mutate(across(where(is.numeric), ~ round(.x, 2))) |>
+  kable()
+```
+
+## Results and Interpretation
+
+The bar chart and test statistics are shown on @fig-test.
+
+```{r}
+#| label: fig-test
+#| fig-cap: Bar chart and test statistics.
+#| fig-height: 3
+
+ggbarstats(
+  data = df,
+  x = study_technique,
+  y = gwa_class_description,
+  bf.message = FALSE,
+  legend.title = "study technique"
+)
+```
+
+Based on the results, if the p-value is less than the 5% significance level ((\alpha=0.05)), we reject the null hypothesis. This indicates that there is a statistically significant association between students' primary study techniques and their GWA classification. However, in this study, the obtained p-value of 0.23 is greater than 0.05; therefore, we fail to reject the null hypothesis. This suggests that there is insufficient statistical evidence to establish a significant association between the two variables. Additionally, the Cramér's V value of 0.14 indicates a weak association. Although the graph shows variations in the study techniques used by students across different GWA classifications, these differences are not statistically significant. Thus, the findings suggest that students' primary study techniques alone do not demonstrate a significant relationship with their academic performance in this dataset.
